@@ -94,7 +94,7 @@ const handleHome = () => {
         <div class="text-7xl mb-4">{{ score.stars >= 4 ? '🏆' : score.stars >= 3 ? '🎉' : '🌱' }}</div>
         <h1 class="font-display text-5xl text-white mb-2 text-stroke">游戏结束</h1>
         <div class="text-white/70 text-lg mb-2">{{ endReasonText }}</div>
-        <div v-if="state.releaseDestination && state.releaseDestination !== 'unknown'" class="text-white/60 text-sm">
+        <div v-if="state.endReason === 'release' && state.releaseDestination && state.releaseDestination !== 'unknown'" class="text-white/60 text-sm">
           放飞去向：{{ DESTINATION_EMOJI[state.releaseDestination] }} {{ DESTINATION_NAMES[state.releaseDestination] }}
         </div>
         <div class="font-display text-3xl text-amber-300 mb-6 mt-2">{{ score.rank }}</div>
@@ -121,7 +121,7 @@ const handleHome = () => {
           </div>
         </div>
 
-        <div class="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-8">
+        <div :class="['grid gap-3 mb-8', state.endReason === 'release' ? 'grid-cols-2 sm:grid-cols-3' : 'grid-cols-2']">
           <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
             <div class="text-3xl mb-2">💚</div>
             <div class="text-white/60 text-xs mb-1">成活率</div>
@@ -146,20 +146,22 @@ const handleHome = () => {
             <div class="font-bold text-2xl text-amber-400">+{{ score.personalityBonus }}</div>
           </div>
 
-          <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-            <div class="text-3xl mb-2">🕊️</div>
-            <div class="text-white/60 text-xs mb-1">放飞加成</div>
-            <div class="font-bold text-2xl text-sky-400">+{{ score.releaseBonus }}</div>
-          </div>
+          <template v-if="state.endReason === 'release'">
+            <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+              <div class="text-3xl mb-2">🕊️</div>
+              <div class="text-white/60 text-xs mb-1">放飞加成</div>
+              <div class="font-bold text-2xl text-sky-400">+{{ score.releaseBonus }}</div>
+            </div>
 
-          <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
-            <div class="text-3xl mb-2">🗺️</div>
-            <div class="text-white/60 text-xs mb-1">去向加成</div>
-            <div class="font-bold text-2xl text-emerald-400">+{{ score.destinationBonus }}</div>
-          </div>
+            <div class="bg-white/5 rounded-2xl p-4 text-center border border-white/10">
+              <div class="text-3xl mb-2">🗺️</div>
+              <div class="text-white/60 text-xs mb-1">去向加成</div>
+              <div class="font-bold text-2xl text-emerald-400">+{{ score.destinationBonus }}</div>
+            </div>
+          </template>
         </div>
 
-        <div v-if="state.releaseDestination && state.releaseDestination !== 'unknown'"
+        <div v-if="state.endReason === 'release' && state.releaseDestination && state.releaseDestination !== 'unknown'"
           class="bg-gradient-to-r from-sky-500/10 to-emerald-500/10 rounded-2xl p-5 mb-6 border border-sky-400/20">
           <div class="text-center">
             <div class="text-white/80 mb-3 flex items-center justify-center gap-2">
@@ -195,7 +197,7 @@ const handleHome = () => {
           </div>
         </div>
 
-        <div v-if="destinationStats.length > 0" class="mb-6">
+        <div v-if="state.endReason === 'release' && destinationStats.length > 0" class="mb-6">
           <div class="text-white/60 text-sm text-center mb-3">🗺️ 放飞去向统计</div>
           <div class="space-y-2">
             <div
@@ -228,7 +230,7 @@ const handleHome = () => {
         <div v-if="releasedBirds.length > 0 || keptBirds.length > 0" class="mb-6">
           <div class="text-white/60 text-sm text-center mb-3">💐 那些陪伴过你的鸟儿们</div>
 
-          <div v-if="releasedBirds.length > 0" class="mb-3">
+          <div v-if="state.endReason === 'release' && releasedBirds.length > 0" class="mb-3">
             <div class="text-sky-300/80 text-xs mb-2 text-center">🕊️ 已放飞</div>
             <div class="flex flex-wrap justify-center gap-2">
               <div
@@ -246,7 +248,9 @@ const handleHome = () => {
           </div>
 
           <div v-if="keptBirds.length > 0">
-            <div class="text-amber-300/80 text-xs mb-2 text-center">🏡 留在巢中</div>
+            <div class="text-amber-300/80 text-xs mb-2 text-center">
+              {{ state.endReason === 'keep' ? '🏡 留在巢中相伴' : '🏡 留在巢中' }}
+            </div>
             <div class="flex flex-wrap justify-center gap-2">
               <div
                 v-for="bird in keptBirds"

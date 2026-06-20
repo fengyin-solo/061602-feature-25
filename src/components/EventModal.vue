@@ -196,10 +196,10 @@ watch(
             v-else
             class="px-6 py-3 bg-gradient-to-r from-amber-500 to-yellow-600 text-white rounded-2xl font-bold
                    btn-3d hover:from-amber-400 hover:to-yellow-500 flex items-center gap-2"
-            @click="openDestinationPicker"
+            @click="emit('breed')"
           >
             <span class="text-xl">🏡</span>
-            放飞（结束）
+            留下陪伴（结束）
           </button>
         </div>
       </div>
