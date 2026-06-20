@@ -8,6 +8,8 @@ export type BerryType = 'red' | 'blue' | 'golden'
 
 export type GamePhase = 'start' | 'playing' | 'breeding' | 'ended'
 
+export type ReleaseDestination = 'forest' | 'wetland' | 'mountain' | 'park' | 'unknown'
+
 export interface Bird {
   id: string
   name: string
@@ -22,6 +24,8 @@ export interface Bird {
   isAway: boolean
   isSick: boolean
   isDead: boolean
+  isReleased: boolean
+  releaseDestination?: ReleaseDestination
   feedingCount: number
   lastFedAt: number
   awayUntil?: number
@@ -51,8 +55,12 @@ export interface GameState {
   berries: Berry[]
   totalHatched: number
   totalDied: number
+  totalReleased: number
+  releaseStats: Record<ReleaseDestination, number>
   breedingCount: number
   maxBreedingRounds: number
+  endReason?: 'release' | 'keep' | 'allDead'
+  releaseDestination?: ReleaseDestination
   eventLog: { id: string; message: string; type: string; timestamp: number }[]
   score?: GameScore
   selectedBirdId?: string
@@ -64,6 +72,8 @@ export interface GameScore {
   avgHealth: number
   breedingBonus: number
   personalityBonus: number
+  releaseBonus: number
+  destinationBonus: number
   stars: number
   rank: string
 }

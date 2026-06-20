@@ -1,4 +1,4 @@
-import type { Weather, WeatherEffect, BerryType, GrowthStage, Personality } from '@/types/game'
+import type { Weather, WeatherEffect, BerryType, GrowthStage, Personality, ReleaseDestination } from '@/types/game'
 
 export const ATTR_MIN = 0
 export const ATTR_MAX = 100
@@ -110,3 +110,61 @@ export const BIRD_NAMES = [
   '糖糖', '圆圆', '小米', '小麦', '云朵', '星星', '月亮', '太阳',
   '小橘', '小蓝', '小绿', '小红', '阿黄', '阿白', '阿黑', '阿灰',
 ]
+
+export const RELEASE_DESTINATIONS: ReleaseDestination[] = ['forest', 'wetland', 'mountain', 'park']
+
+export const DESTINATION_NAMES: Record<ReleaseDestination, string> = {
+  forest: '茂密森林',
+  wetland: '湿地保护区',
+  mountain: '高山峡谷',
+  park: '城市公园',
+  unknown: '未知之地',
+}
+
+export const DESTINATION_EMOJI: Record<ReleaseDestination, string> = {
+  forest: '🌲',
+  wetland: '🌿',
+  mountain: '⛰️',
+  park: '🏞️',
+  unknown: '❓',
+}
+
+export const DESTINATION_DESCRIPTIONS: Record<ReleaseDestination, string> = {
+  forest: '树木葱郁，食物充足，适合勇敢好奇的鸟儿',
+  wetland: '水草丰美，鱼虾众多，适合恬静温柔的鸟儿',
+  mountain: '视野开阔，翱翔天际，适合倔强独立的鸟儿',
+  park: '人气旺盛，投喂方便，适合亲人胆大的鸟儿',
+  unknown: '去向成谜，自由翱翔',
+}
+
+export const DESTINATION_SURVIVAL_MOD: Record<ReleaseDestination, number> = {
+  forest: 1.1,
+  wetland: 1.15,
+  mountain: 0.95,
+  park: 1.05,
+  unknown: 1.0,
+}
+
+export const DESTINATION_SCORE_BONUS: Record<ReleaseDestination, number> = {
+  forest: 8,
+  wetland: 10,
+  mountain: 12,
+  park: 6,
+  unknown: 0,
+}
+
+export const DESTINATION_PERSONALITY_MATCH: Record<ReleaseDestination, Personality[]> = {
+  forest: ['bold', 'curious'],
+  wetland: ['gentle', 'shy'],
+  mountain: ['stubborn', 'bold'],
+  park: ['curious', 'gentle'],
+  unknown: [],
+}
+
+export const DESTINATION_GRADIENT: Record<ReleaseDestination, string> = {
+  forest: 'from-green-500 to-emerald-600',
+  wetland: 'from-cyan-500 to-teal-600',
+  mountain: 'from-slate-500 to-indigo-600',
+  park: 'from-lime-500 to-green-600',
+  unknown: 'from-gray-500 to-slate-600',
+}

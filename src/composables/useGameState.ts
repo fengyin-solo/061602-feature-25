@@ -1,5 +1,5 @@
 import { reactive, computed, watch } from 'vue'
-import type { GameState, Bird, Berry, GrowthStage, Personality, BerryType, Weather, GameScore } from '@/types/game'
+import type { GameState, Bird, Berry, GrowthStage, Personality, BerryType, Weather, GameScore, ReleaseDestination } from '@/types/game'
 import {
   ATTR_MIN, ATTR_MAX, DEATH_THRESHOLD,
   STAGE_DURATION, FOOD_NEED_MULTIPLIER,
@@ -8,6 +8,8 @@ import {
   BERRY_VALUES, WEATHER_CHANGE_INTERVAL, WEATHER_EFFECTS,
   DAY_DURATION, INITIAL_FOOD, MIN_EGGS, MAX_EGGS,
   MAX_BREEDING_ROUNDS, BIRD_NAMES,
+  DESTINATION_NAMES, DESTINATION_EMOJI, DESTINATION_SURVIVAL_MOD,
+  DESTINATION_SCORE_BONUS, DESTINATION_PERSONALITY_MATCH,
 } from '@/utils/constants'
 import { randomInt, randomFloat, clamp, randomChoice, generateId, chance } from '@/utils/random'
 import { saveGame, loadGame, clearSave } from '@/utils/storage'
@@ -23,6 +25,8 @@ const createInitialState = (): GameState => ({
   berries: [],
   totalHatched: 0,
   totalDied: 0,
+  totalReleased: 0,
+  releaseStats: { forest: 0, wetland: 0, mountain: 0, park: 0, unknown: 0 },
   breedingCount: 0,
   maxBreedingRounds: MAX_BREEDING_ROUNDS,
   eventLog: [],
@@ -74,6 +78,7 @@ const createEgg = (index: number): Bird => {
     isAway: false,
     isSick: false,
     isDead: false,
+    isReleased: false,
     feedingCount: 0,
     lastFedAt: 0,
   }
@@ -360,11 +365,11 @@ const calmBird = (birdId: string): boolean => {
 }
 
 const allAdults = computed(() => {
-  const alive = state.birds.filter(b => !b.isDead)
+  const alive = state.birds.filter(b => !b.isDead && !b.isReleased)
   return alive.length > 0 && alive.every(b => b.stage === 'adult')
 })
 
-const aliveCount = computed(() => state.birds.filter(b => !b.isDead).length)
+const aliveCount = computed(() => state.birds.filter(b => !b.isDead && !b.isReleased).length)
 
 const checkAllAdult = () => {
   if (allAdults.value) {
@@ -372,14 +377,25 @@ const checkAllAdult = () => {
   }
 }
 
-const releaseBirds = () => {
-  const adults = state.birds.filter(b => b.stage === 'adult' && !b.isDead)
-  adults.forEach(b => addEventLog(`🕊️ ${b.name} 飞向了自由的天空！`, 'success'))
+const releaseBirds = (destination: ReleaseDestination = 'unknown') => {
+  const adults = state.birds.filter(b => b.stage === 'adult' && !b.isDead && !b.isReleased)
+  adults.forEach(b => {
+    b.isReleased = true
+    b.releaseDestination = destination
+    state.totalReleased++
+    state.releaseStats[destination] = (state.releaseStats[destination] || 0) + 1
+
+    const matchPersonalities = DESTINATION_PERSONALITY_MATCH[destination] || []
+    const isMatch = matchPersonalities.includes(b.personality)
+    const matchText = isMatch ? '（性格适配，更有希望存活！）' : ''
+    addEventLog(`${DESTINATION_EMOJI[destination]} ${b.name} 飞向了${DESTINATION_NAMES[destination]}！${matchText}`, 'success')
+  })
+  state.releaseDestination = destination
   endGame('release')
 }
 
 const keepAndBreed = () => {
-  const adults = state.birds.filter(b => b.stage === 'adult' && !b.isDead)
+  const adults = state.birds.filter(b => b.stage === 'adult' && !b.isDead && !b.isReleased)
   if (adults.length < 2 || state.breedingCount >= state.maxBreedingRounds) {
     endGame('keep')
     return
@@ -410,7 +426,23 @@ const checkGameEnd = () => {
 const calculateScore = (): GameScore => {
   const totalBirds = state.totalHatched
   const survived = state.birds.filter(b => !b.isDead).length + state.totalDied
-  const survivalRate = totalBirds > 0 ? (survived - state.totalDied) / totalBirds : 0
+  const baseSurvivalRate = totalBirds > 0 ? (survived - state.totalDied) / totalBirds : 0
+
+  const releasedBirds = state.birds.filter(b => b.isReleased && !b.isDead)
+  let adjustedSurvivalRate = baseSurvivalRate
+  if (releasedBirds.length > 0 && state.releaseDestination) {
+    const destMod = DESTINATION_SURVIVAL_MOD[state.releaseDestination] || 1
+    let personalityMatchBonus = 0
+    releasedBirds.forEach(b => {
+      if (b.releaseDestination) {
+        const matchPersonalities = DESTINATION_PERSONALITY_MATCH[b.releaseDestination] || []
+        if (matchPersonalities.includes(b.personality)) {
+          personalityMatchBonus += 0.03
+        }
+      }
+    })
+    adjustedSurvivalRate = clamp(baseSurvivalRate * destMod + personalityMatchBonus, 0, 1)
+  }
 
   const aliveBirds = state.birds.filter(b => !b.isDead)
   const avgHealth = aliveBirds.length > 0
@@ -422,18 +454,34 @@ const calculateScore = (): GameScore => {
     ? aliveBirds.reduce((s, b) => s + (b.feedingCount > 10 ? 5 : 2), 0)
     : 0
 
+  const releaseBonus = state.totalReleased * 5
+  let destinationBonus = 0
+  if (state.releaseDestination && state.releaseDestination !== 'unknown') {
+    destinationBonus = DESTINATION_SCORE_BONUS[state.releaseDestination] || 0
+    releasedBirds.forEach(b => {
+      if (b.releaseDestination) {
+        const matchPersonalities = DESTINATION_PERSONALITY_MATCH[b.releaseDestination] || []
+        if (matchPersonalities.includes(b.personality)) {
+          destinationBonus += 3
+        }
+      }
+    })
+  }
+
   const totalScore = Math.round(
-    survivalRate * 40 +
+    adjustedSurvivalRate * 40 +
     avgHealth * 0.3 +
     breedingBonus +
-    personalityBonus
+    personalityBonus +
+    releaseBonus +
+    destinationBonus
   )
 
   let stars = 1
-  if (totalScore >= 80) stars = 5
-  else if (totalScore >= 65) stars = 4
-  else if (totalScore >= 50) stars = 3
-  else if (totalScore >= 30) stars = 2
+  if (totalScore >= 85) stars = 5
+  else if (totalScore >= 70) stars = 4
+  else if (totalScore >= 55) stars = 3
+  else if (totalScore >= 35) stars = 2
 
   const rank = stars >= 5 ? '🏆 传奇养鸟人'
     : stars === 4 ? '🥇 金牌养鸟人'
@@ -443,18 +491,21 @@ const calculateScore = (): GameScore => {
 
   return {
     totalScore: clamp(totalScore, 0, 100),
-    survivalRate: Math.round(survivalRate * 100),
+    survivalRate: Math.round(adjustedSurvivalRate * 100),
     avgHealth: Math.round(avgHealth),
     breedingBonus,
     personalityBonus,
+    releaseBonus,
+    destinationBonus,
     stars,
     rank,
   }
 }
 
-const endGame = (_reason: string) => {
+const endGame = (reason: 'release' | 'keep' | 'allDead') => {
   stopGameLoop()
   state.phase = 'ended'
+  state.endReason = reason
   state.score = calculateScore()
   addEventLog('🎮 游戏结束', 'info')
   saveGame(state)

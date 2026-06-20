@@ -96,7 +96,7 @@ const handleCollect = (id: string) => {
           <EventModal
             :state="state"
             :all-adults="allAdults"
-            @release="releaseBirds"
+            @release="((dest: string) => releaseBirds(dest as any))"
             @breed="keepAndBreed"
           />
         </div>
@@ -109,12 +109,14 @@ const handleCollect = (id: string) => {
         >
           <span>🏠</span> 返回主页
         </button>
-        <div class="glass rounded-xl px-4 py-2 text-white/80 text-sm flex items-center gap-2">
+        <div class="glass rounded-xl px-4 py-2 text-white/80 text-sm flex items-center gap-2 flex-wrap justify-center">
           <span>💚</span> 存活 {{ aliveCount }} 只
           <span class="mx-1 text-white/30">|</span>
           孵化 {{ state.totalHatched }}
           <span class="mx-1 text-white/30">|</span>
           离世 {{ state.totalDied }}
+          <span v-if="state.totalReleased > 0" class="mx-1 text-white/30">|</span>
+          <span v-if="state.totalReleased > 0">🕊️ 放飞 {{ state.totalReleased }}</span>
         </div>
       </div>
     </div>
